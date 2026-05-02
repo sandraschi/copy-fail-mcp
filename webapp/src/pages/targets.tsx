@@ -16,7 +16,7 @@ interface Host {
 function load(): Host[] { try { const d = localStorage.getItem("cf-hosts"); return d ? JSON.parse(d) : []; } catch { return []; } }
 function save(h: Host[]) { try { localStorage.setItem("cf-hosts", JSON.stringify(h)); } catch { /* */ } }
 
-const BACKEND = "http://127.0.0.1:10955";
+const BACKEND = "";
 
 async function call(tool: string, args: Record<string, unknown>) {
   try {
@@ -34,6 +34,7 @@ async function call(tool: string, args: Record<string, unknown>) {
 export function Targets() {
   const [hosts, setHosts] = useState<Host[]>(() => load());
   const [scanning, setScanning] = useState(false);
+  const [wslDetecting, setWslDetecting] = useState(false);
   const [cidr, setCidr] = useState("192.168.1.0/24");
   const [scanProgress, setScanProgress] = useState("");
   const [online, setOnline] = useState<boolean | null>(null);
@@ -68,6 +69,24 @@ export function Targets() {
       setHosts([...existing]);
     }
   }, [cidr]);
+
+  const detectWsl = useCallback(async () => {
+    setWslDetecting(true);
+    const r = await call("cf_detect_local_wsl", {});
+    setWslDetecting(false);
+    if (r?.status === "ok" && r.hosts?.length > 0) {
+      const now = new Date().toISOString();
+      const existing = load();
+      for (const h of r.hosts) {
+        const ip = h.ip as string;
+        if (!existing.find((e) => e.ip === ip)) {
+          existing.push({ ip, checked_at: now, note: `WSL: ${h.distro}` });
+        }
+      }
+      save(existing);
+      setHosts([...existing]);
+    }
+  }, []);
 
   const check = useCallback(async (ip: string) => {
     const r = await call("cf_check_target", { host: ip, username: "root", port: 22 });
@@ -153,9 +172,15 @@ export function Targets() {
         {scanning ? (
           <span className="flex items-center gap-1.5 text-xs text-slate-400"><Loader2 className="h-3 w-3 animate-spin" /> Scanning...</span>
         ) : (
-          <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700" onClick={runScan}>
-            <RefreshCw className="h-3 w-3 mr-1" /> Scan
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700" onClick={runScan}>
+              <RefreshCw className="h-3 w-3 mr-1" /> Scan
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700" onClick={detectWsl} disabled={wslDetecting}>
+              {wslDetecting ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Terminal className="h-3 w-3 mr-1" />}
+              WSL
+            </Button>
+          </div>
         )}
         {hosts.length > 0 && !scanning && (
           <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-500" onClick={clear}>Clear</Button>

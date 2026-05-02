@@ -100,6 +100,75 @@ async def cf_exploit_local(
 
 
 @mcp.tool()
+async def cf_detect_local_wsl() -> dict:
+    """Detect local WSL2 instances with SSH running.
+
+    On Windows, queries `wsl.exe` for installed distros and their IPs.
+    Also checks if SSH port 22 is forwarded on localhost (WSL2 default).
+
+    Returns:
+        List of WSL instances with distro name and IP.
+    """
+    import asyncio
+    import sys
+
+    wsl_hosts: list[dict] = []
+
+    # Check if we're on Windows with WSL available
+    if sys.platform != "win32":
+        return {"status": "not_windows", "hosts": [], "note": "WSL detection only works on Windows"}
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "wsl.exe", "-l", "-q",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=10.0)
+        distros = [d.strip() for d in stdout.decode().strip().split("\r\n") if d.strip()]
+
+        if not distros:
+            return {"status": "no_wsl", "hosts": [], "note": "No WSL distros found"}
+
+        for distro in distros:
+            try:
+                proc2 = await asyncio.create_subprocess_exec(
+                    "wsl.exe", "-d", distro, "hostname", "-I",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout2, _ = await asyncio.wait_for(proc2.communicate(), timeout=10.0)
+                ip = stdout2.decode().strip().split()[0] if stdout2.decode().strip() else ""
+                if ip:
+                    wsl_hosts.append({"distro": distro, "ip": ip, "port": 22})
+            except Exception as e:
+                pass  # skip distros that fail
+
+        # Also check localhost (WSL2 port forwarding)
+        try:
+            import socket
+            s = socket.socket()
+            s.settimeout(1.0)
+            s.connect(("127.0.0.1", 22))
+            s.close()
+            if not any(h["ip"] == "127.0.0.1" for h in wsl_hosts):
+                wsl_hosts.append({"distro": "unknown (localhost)", "ip": "127.0.0.1", "port": 22})
+        except Exception:
+            pass
+
+        return {
+            "status": "ok",
+            "hosts": wsl_hosts,
+            "note": f"Found {len(wsl_hosts)} WSL instance(s)",
+        }
+
+    except FileNotFoundError:
+        return {"status": "no_wsl", "hosts": [], "note": "wsl.exe not found (WSL not installed)"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@mcp.tool()
 async def cf_scan_network(
     cidr: str = "192.168.1.0/24",
     port: int = 22,

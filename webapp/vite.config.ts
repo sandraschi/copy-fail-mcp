@@ -10,5 +10,11 @@ export default defineConfig({
   server: {
     port: 10954,
     host: "127.0.0.1",
+    proxy: {
+      "/mcp": {
+        target: "http://127.0.0.1:10955",
+        changeOrigin: true,
+      },
+    },
   },
 });

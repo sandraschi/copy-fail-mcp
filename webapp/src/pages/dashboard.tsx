@@ -57,7 +57,7 @@ export function TestRunner() {
   const [scanResults, setScanResults] = useState<ScanHost[] | null>(null);
   const [scanError, setScanError] = useState("");
 
-  const BACKEND = "http://127.0.0.1:10955";
+  const BACKEND = "";
 
   async function callTool(tool: string, args: Record<string, unknown>) {
     const resp = await fetch(`${BACKEND}/mcp`, {
