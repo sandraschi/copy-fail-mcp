@@ -144,73 +144,91 @@ export function Targets() {
           ))}
         </div>
 
-        <Card className="border-slate-800 bg-slate-950/50">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2"><Network className="h-4 w-4 text-slate-400" /> Hosts</CardTitle>
-              <div className="flex items-center gap-2">
-                <input className="bg-slate-900 border border-slate-800 text-xs text-slate-300 rounded px-2 py-1 h-7 w-28 font-mono" value={cidr} onChange={(e) => setCidr(e.target.value)} placeholder="192.168.1.0/24" />
-                {scanning ? (
-                  <span className="flex items-center gap-1.5 text-xs text-slate-400"><Loader2 className="h-3 w-3 animate-spin" /> Scanning...</span>
-                ) : (
-                  <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700" onClick={runScan}>
-                    <RefreshCw className="h-3 w-3 mr-1" /> Scan
-                  </Button>
-                )}
-                {hosts.length > 0 && !scanning && (
-                  <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-500" onClick={clear}>Clear</Button>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {scanning && (
-              <div className="flex items-center justify-center py-8 text-sm text-slate-500">
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> {scanProgress || "Scanning subnet..."}
-              </div>
-            )}
-            {!scanning && hosts.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-600">
-                <RadioTower className="h-12 w-12 mb-3 opacity-30" />
-                <p className="text-base text-slate-500">No targets discovered yet</p>
-                <p className="text-xs text-slate-600 mt-1">Scan a subnet to find Linux hosts with SSH open</p>
-                <Button size="sm" variant="outline" className="mt-3 border-slate-700 text-xs" onClick={runScan}>
-                  <Network className="h-3 w-3 mr-1" /> Scan
-                </Button>
-              </div>
-            )}
-            {!scanning && hosts.length > 0 && (
-              <div className="border-t border-slate-800">
-                <div className="divide-y divide-slate-800/50">
-                  {hosts.map((h) => (
-                    <div key={h.ip} className="flex items-center justify-between px-4 py-2.5 hover:bg-slate-900/30">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${h.got_root ? "bg-red-500" : h.vulnerable ? "bg-red-500" : h.patched ? "bg-emerald-500" : h.kernel ? (h.vulnerable === false ? "bg-emerald-500" : "bg-slate-600") : "bg-slate-600"}`} />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-mono text-cyan-400">{h.ip}</span>
-                            {h.got_root && <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">OWNED</Badge>}
-                            {h.vulnerable && !h.got_root && <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">VULN</Badge>}
-                            {h.patched && <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 border-emerald-700 text-emerald-400">PATCHED</Badge>}
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {h.kernel && <span className="text-[11px] font-mono text-slate-500">{h.kernel}</span>}
-                            {h.checked_at && <span className="text-[10px] text-slate-600">{new Date(h.checked_at).toLocaleTimeString()}</span>}
-                            {h.note && <span className="text-[10px] text-slate-600 truncate max-w-[120px]">{h.note}</span>}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 ml-2">
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-slate-500" onClick={() => check(h.ip)} title="Check kernel"><Terminal className="h-3.5 w-3.5" /></Button>
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500" onClick={() => own(h.ip)} title="Run exploit"><Skull className="h-3.5 w-3.5" /></Button>
-                      </div>
+<Card className="border-slate-800 bg-slate-950/50">
+  <CardHeader className="pb-2">
+    <div className="flex items-center justify-between">
+      <CardTitle className="flex items-center gap-2"><Network className="h-4 w-4 text-slate-400" /> Targets ({hosts.length})</CardTitle>
+      <div className="flex items-center gap-2">
+        <input className="bg-slate-900 border border-slate-800 text-xs text-slate-300 rounded px-2 py-1 h-7 w-28 font-mono" value={cidr} onChange={(e) => setCidr(e.target.value)} placeholder="192.168.1.0/24" />
+        {scanning ? (
+          <span className="flex items-center gap-1.5 text-xs text-slate-400"><Loader2 className="h-3 w-3 animate-spin" /> Scanning...</span>
+        ) : (
+          <Button size="sm" variant="outline" className="h-7 text-xs border-slate-700" onClick={runScan}>
+            <RefreshCw className="h-3 w-3 mr-1" /> Scan
+          </Button>
+        )}
+        {hosts.length > 0 && !scanning && (
+          <Button size="sm" variant="ghost" className="h-7 text-xs text-slate-500" onClick={clear}>Clear</Button>
+        )}
+      </div>
+    </div>
+  </CardHeader>
+  <CardContent>
+    {scanning && (
+      <div className="flex items-center justify-center py-8 text-sm text-slate-500">
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> {scanProgress || "Scanning subnet..."}
+      </div>
+    )}
+    {!scanning && hosts.length === 0 && (
+      <div className="flex flex-col items-center justify-center py-12 text-slate-600">
+        <RadioTower className="h-12 w-12 mb-3 opacity-30" />
+        <p className="text-base text-slate-500">No targets discovered yet</p>
+        <p className="text-xs text-slate-600 mt-1">Scan a subnet to find Linux hosts with SSH open</p>
+        <Button size="sm" variant="outline" className="mt-3 border-slate-700 text-xs" onClick={runScan}>
+          <Network className="h-3 w-3 mr-1" /> Scan
+        </Button>
+      </div>
+    )}
+    {!scanning && hosts.length > 0 && (
+      <div className="grid gap-3 md:grid-cols-2">
+        {hosts.map((h) => (
+          <Card key={h.ip} className={`border ${
+            h.got_root ? "border-red-700 bg-red-950/10" :
+            h.vulnerable ? "border-red-900/50 bg-red-950/5" :
+            h.patched || h.vulnerable === false ? "border-emerald-900/50 bg-emerald-950/5" :
+            "border-slate-800 bg-slate-950/50"
+          }`}>
+            <CardContent className="p-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`h-3 w-3 rounded-full shrink-0 mt-0.5 ${
+                    h.got_root ? "bg-red-500" :
+                    h.vulnerable ? "bg-red-500" :
+                    h.patched || h.vulnerable === false ? "bg-emerald-500" :
+                    "bg-slate-600"
+                  }`} />
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-base font-mono text-cyan-400 font-medium">{h.ip}</span>
+                      {h.got_root && <Badge variant="destructive" className="text-[10px]">OWNED</Badge>}
+                      {h.vulnerable && !h.got_root && <Badge variant="destructive" className="text-[10px]">VULN</Badge>}
+                      {h.patched && <Badge className="text-[10px] bg-emerald-900/30 text-emerald-400 border-emerald-700">PATCHED</Badge>}
                     </div>
-                  ))}
+                    <div className="flex items-center gap-3 mt-1 flex-wrap text-xs">
+                      {h.kernel && <span className="font-mono text-cyan-400 text-[11px]">{h.kernel}</span>}
+                      {h.checked_at && <span className="text-slate-600 text-[10px]">{new Date(h.checked_at).toLocaleString()}</span>}
+                    </div>
+                    {h.note && (
+                      <p className="text-[10px] text-slate-600 mt-1 font-mono truncate max-w-[300px]">{h.note}</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-800">
+                <Button size="sm" variant="outline" className="h-7 text-[10px] border-slate-700 text-slate-400" onClick={() => check(h.ip)}>
+                  <Terminal className="h-3 w-3 mr-1" /> Check
+                </Button>
+                <Button size="sm" variant="destructive" className="h-7 text-[10px]" onClick={() => own(h.ip)}>
+                  <Skull className="h-3 w-3 mr-1" /> Exploit
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )}
+  </CardContent>
+</Card>
 
         {hosts.length > 0 && (
           <div className="flex items-center gap-4 text-xs text-slate-500 border-t border-slate-800 pt-4">
