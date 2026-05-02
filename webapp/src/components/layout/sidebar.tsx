@@ -17,7 +17,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: "Fleet Overview", icon: LayoutDashboard, path: "/" },
+  { label: "Targets", icon: LayoutDashboard, path: "/" },
   { label: "Test Runner", icon: RadioTower, path: "/test-runner" },
   { label: "History", icon: History, path: "/history" },
   { label: "Help & Safety", icon: HelpCircle, path: "/help" },

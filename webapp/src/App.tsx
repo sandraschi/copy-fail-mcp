@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/app-layout";
 import { ErrorBoundary } from "@/common/error-boundary";
-import { FleetOverview } from "@/pages/fleet-overview";
+import { Targets } from "@/pages/targets";
 import { TestRunner } from "@/pages/dashboard";
 import { History } from "@/pages/history";
 import { Help } from "@/pages/help";
@@ -13,7 +13,7 @@ export default function App() {
       <BrowserRouter>
         <AppLayout>
           <Routes>
-            <Route path="/" element={<FleetOverview />} />
+            <Route path="/" element={<Targets />} />
             <Route path="/test-runner" element={<TestRunner />} />
             <Route path="/history" element={<History />} />
             <Route path="/help" element={<Help />} />
