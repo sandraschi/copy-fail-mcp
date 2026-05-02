@@ -27,11 +27,13 @@ def cli():
 @click.option("--host", default=None, help="HTTP bind address")
 def serve(http_mode: bool, port: int | None, host: str | None):
     """Start the Copy Fail MCP server"""
-    console.print(Panel.fit(
-        Text("Copy Fail MCP Server", style="bold red"),
-        subtitle="CVE-2026-31431 Linux LPE Tester",
-        border_style="red",
-    ))
+    console.print(
+        Panel.fit(
+            Text("Copy Fail MCP Server", style="bold red"),
+            subtitle="CVE-2026-31431 Linux LPE Tester",
+            border_style="red",
+        )
+    )
     console.print()
     console.print("Available tools:", style="cyan")
     console.print("  cf_check_target  - Check kernel vulnerability")
@@ -61,6 +63,7 @@ def serve(http_mode: bool, port: int | None, host: str | None):
 def scan(subnet: str, timeout: float, show_all: bool):
     """Scan a local subnet for Linux hosts with SSH open"""
     import asyncio
+
     from .scanner import scan_subnet
 
     console.print(f"Scanning {subnet} on port 22...", style="cyan")
@@ -105,6 +108,7 @@ def check(host: str, user: str, port: int, force: bool):
             return
 
     import asyncio
+
     from .checker import assess as run_assess
     from .ssh_client import SSHClient
 
@@ -116,6 +120,7 @@ def check(host: str, user: str, port: int, force: bool):
         try:
             result = await run_assess(ssh, force=force)
             from rich import print as rprint
+
             rprint(result)
         finally:
             await ssh.close()

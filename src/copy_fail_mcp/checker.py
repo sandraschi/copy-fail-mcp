@@ -9,7 +9,6 @@ The exploit script is embedded as base64 to avoid AV flagging on disk.
 import base64
 import logging
 import re
-from typing import Optional
 
 from .ssh_client import SSHClient
 
@@ -39,7 +38,7 @@ EXPLOIT_SCRIPT = base64.b64decode(EXPLOIT_B64).decode("utf-8")
 VULN_MIN_KERNEL = (4, 14)
 
 
-def _parse_kernel_version(version_str: str) -> Optional[tuple[int, ...]]:
+def _parse_kernel_version(version_str: str) -> tuple[int, ...] | None:
     match = re.match(r"(\d+)\.(\d+)\.(\d+)", version_str)
     if match:
         return tuple(int(g) for g in match.groups())
@@ -169,9 +168,7 @@ async def apply_mitigation(ssh: SSHClient, dry_run: bool = True) -> dict:
     )
     initcall_active = "BLACKLISTED" in stdout2
 
-    code3, stdout3, _ = await ssh.run(
-        "test -f /etc/modprobe.d/disable-algif.conf && echo 'EXISTS' || echo 'MISSING'"
-    )
+    code3, stdout3, _ = await ssh.run("test -f /etc/modprobe.d/disable-algif.conf && echo 'EXISTS' || echo 'MISSING'")
     modprobe_file_exists = "EXISTS" in stdout3
 
     if kernel_info.get("aead_module") and modprobe_file_exists and not module_loaded:

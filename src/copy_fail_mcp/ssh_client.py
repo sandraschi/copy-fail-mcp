@@ -6,7 +6,6 @@ Uses asyncssh with SSH agent forwarding. No passwords stored.
 
 import asyncio
 import logging
-from typing import Optional
 
 import asyncssh
 
@@ -21,7 +20,7 @@ class SSHClient:
         self.port = port
         self.username = username
         self.timeout = timeout
-        self._conn: Optional[asyncssh.SSHClientConnection] = None
+        self._conn: asyncssh.SSHClientConnection | None = None
 
     async def connect(self) -> bool:
         """Establish SSH connection with agent forwarding."""
@@ -38,7 +37,7 @@ class SSHClient:
             )
             logger.info(f"SSH connected to {self.username}@{self.host}:{self.port}")
             return True
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error(f"SSH connection timed out to {self.host}:{self.port}")
             return False
         except asyncssh.Error as e:
@@ -56,7 +55,7 @@ class SSHClient:
                 timeout=timeout,
             )
             return (result.returncode or 0, result.stdout or "", result.stderr or "")
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning(f"Command timed out on {self.host}: {command[:80]}")
             return (-1, "", "TIMEOUT")
         except asyncssh.Error as e:

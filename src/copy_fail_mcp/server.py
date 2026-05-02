@@ -5,11 +5,10 @@ FastMCP 3.2 tools for testing Linux hosts against the Copy Fail LPE.
 """
 
 import logging
-import os
 
 from fastmcp import FastMCP
 
-from .checker import check_kernel, run_exploit, assess, apply_mitigation, EXPLOIT_SCRIPT
+from .checker import EXPLOIT_SCRIPT, apply_mitigation, assess, check_kernel, run_exploit
 from .scanner import scan_subnet
 from .ssh_client import SSHClient
 
