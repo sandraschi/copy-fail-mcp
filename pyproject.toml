@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "copy-fail-mcp"
+version = "0.1.0"
+description = "CVE-2026-31431 Copy Fail — Linux kernel LPE tester via MCP"
+authors = [{name = "Sandra Schi-Avanzini"}]
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Security",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "fastmcp>=3.2.0,<4",
+    "asyncssh>=2.15.0,<3.0.0",
+    "click>=8.0.0,<9.0.0",
+    "rich>=13.0.0,<14.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.15.2",
+    "pytest>=7.0.0,<8.0.0",
+    "pytest-asyncio>=0.20.0,<1.0.0",
+]
+
+[project.scripts]
+copy-fail = "copy_fail_mcp.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "S", "UP", "RUF"]
+ignore = ["S101"]
