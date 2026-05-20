@@ -14,5 +14,6 @@ venv/
 *~
 .DS_Store
 Thumbs.db
+_dashboard/
 webapp/node_modules/
 webapp/dist/

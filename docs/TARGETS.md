@@ -9,6 +9,62 @@ How to configure various Linux targets for testing with Copy Fail MCP.
 
 ---
 
+## Threat Scenario: Same WiFi, No Protection
+
+**Common misconception:** "WPA2 is on, so I'm isolated from other devices on the WiFi."
+
+**Reality:** WPA2/3 encrypts *the air* between your machine and the Access Point.
+Once traffic reaches the AP, it is decrypted and forwarded onto the LAN as plain
+Ethernet. Any other device on the same subnet can talk to you directly — WPA
+does nothing to stop it.
+
+This means: in a cafe, makerspace, conference, or co-working space, anyone on
+the same WiFi can SSH into your Linux laptop if:
+- SSH is running (it usually is)
+- You have a default/guessable username (ubuntu, pi, admin, etc.)
+- Your password is weak or you use key auth with the key on disk
+
+### The Copy Fail variant
+
+```
+Attacker (Windows)           AP (WPA2 on)          Victim (Linux)
+     │                            │                      │
+     │  ─── WPA2 encrypted ───→   │                      │
+     │                            │  ── plain Ethernet ──→│
+     │                            │                      │
+     │  ─── SSH to 192.168.1.42 ──────────────────────→   │
+     │       (WPA did not block this)                    │
+     │                            │                      │
+     │  $ python3 -c "732 bytes"                         │
+     │  $ su                                              │
+     │  # whoami → root                                   │
+```
+
+WPA did not prevent the SSH connection. The exploit works.
+The Linux box is now pivoted into the network.
+
+### Mitigation
+
+| Mitigation | Effectiveness | Caveat |
+|------------|---------------|--------|
+| **Your own phone hotspot** | Perfect | Both machines connect to iPhone/Android AP. No other devices on the network. Trivial to set up. |
+| **AP client isolation** | Perfect | Blocks all peer-to-peer LAN traffic. Every AP calls it something different (AP Isolation, Station Isolation, Guest Network, Client Separation). |
+| **VPN (Tailscale/WireGuard)** | Perfect | Creates an encrypted tunnel outside the LAN. Even if the LAN is hostile, your traffic is safe. |
+| **Firewall on the Linux box** | Good | `sudo ufw enable` blocks inbound connections. But the exploit only needs SSH reachable — if you opened 22 for remote work, this won't help. |
+| **WPA3 SAE** | **None** | WPA3 is also only over-the-air encryption. Same LAN attack still works. |
+
+### Bottom line
+
+If you want to test Copy Fail in a cafe, **use your phone as a hotspot**.
+Both machines connect to it. No one else is on that network. It takes 30 seconds
+and eliminates the entire threat surface.
+
+If you cannot use a hotspot (no mobile signal), use a Tailscale network.
+Both machines join the same virtual network, and the exploit traffic travels
+through an encrypted WireGuard tunnel — even over hostile WiFi.
+
+---
+
 ## Network Requirements (Common Pitfalls)
 
 This tool needs a direct TCP connection from your MCP host to the target's SSH port (22).

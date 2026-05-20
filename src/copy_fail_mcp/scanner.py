@@ -7,7 +7,6 @@ Uses async TCP connect scans — no dependencies beyond asyncio.
 import asyncio
 import ipaddress
 import logging
-import socket
 
 logger = logging.getLogger(__name__)
 

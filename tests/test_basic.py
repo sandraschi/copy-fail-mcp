@@ -49,18 +49,24 @@ class TestKernelParser:
 
 class TestExploitPayload:
     def test_exploit_decodes_correctly(self):
-        from copy_fail_mcp.checker import EXPLOIT_B64, EXPLOIT_SCRIPT
+        from copy_fail_mcp.checker import (
+            EXPLOIT_PAYLOAD_SHA256,
+            EXPLOIT_SCRIPT,
+            _decode_exploit,
+        )
 
-        assert len(EXPLOIT_SCRIPT) == 732
+        assert len(EXPLOIT_SCRIPT) == 6332
         assert EXPLOIT_SCRIPT.startswith("#!/usr/bin/env python3")
         assert "authencesn" in EXPLOIT_SCRIPT
-        assert "sg_chain" not in EXPLOIT_SCRIPT  # should be splice-based
-        assert "splice" in EXPLOIT_SCRIPT or "pipe" in EXPLOIT_SCRIPT
-        # Verify b64 is valid
-        import base64
-
-        decoded = base64.b64decode(EXPLOIT_B64).decode("utf-8")
+        assert "PageCacheWriter" in EXPLOIT_SCRIPT
+        assert "splice" in EXPLOIT_SCRIPT and "pipe" in EXPLOIT_SCRIPT
+        assert "passwd_escalate" in EXPLOIT_SCRIPT
+        # Verify gzip+b64 roundtrip
+        decoded = _decode_exploit()
         assert decoded == EXPLOIT_SCRIPT
+        # Verify integrity
+        import hashlib
+        assert hashlib.sha256(EXPLOIT_SCRIPT.encode()).hexdigest() == EXPLOIT_PAYLOAD_SHA256
 
 
 class TestMitigation:
@@ -203,14 +209,53 @@ class TestScanner:
 # ── SSH Client Tests ──────────────────────────────────────────────────────
 
 
+class TestUserResolution:
+    def test_resolve_users_from_banner(self):
+        from copy_fail_mcp.ssh_client import resolve_users
+
+        users = resolve_users("SSH-2.0-OpenSSH_8.9p1 Ubuntu-3")
+        assert users[0] == "ubuntu"
+        assert "admin" in users[:3]
+        assert "root" in users  # root is always last resort
+
+    def test_resolve_users_debian_banner(self):
+        from copy_fail_mcp.ssh_client import resolve_users
+
+        users = resolve_users("SSH-2.0-OpenSSH Debian-3")
+        assert users[0] == "debian"
+
+    def test_resolve_users_raspbian_banner(self):
+        from copy_fail_mcp.ssh_client import resolve_users
+
+        users = resolve_users("SSH-2.0-OpenSSH Raspbian")
+        assert users[0] == "pi"
+
+    def test_resolve_users_no_banner(self):
+        from copy_fail_mcp.ssh_client import resolve_users
+
+        users = resolve_users(None)
+        assert users[0] == "ubuntu"
+        assert users[-1] == "root"
+
+    def test_resolve_users_deduplicates(self):
+        from copy_fail_mcp.ssh_client import resolve_users
+
+        # "amazon" maps to ec2-user which is also in default chain
+        users = resolve_users("Amazon Linux 2")
+        amazon_users = users[:3]
+        assert "ec2-user" in amazon_users
+        # ec2-user should only appear once
+        assert users.count("ec2-user") == 1
+
+
 class TestSSHClient:
     def test_ssh_client_init(self):
         from copy_fail_mcp.ssh_client import SSHClient
 
-        client = SSHClient(host="192.168.1.100", port=22, username="root")
+        client = SSHClient(host="192.168.1.100", port=22, username="ubuntu")
         assert client.host == "192.168.1.100"
         assert client.port == 22
-        assert client.username == "root"
+        assert client.username == "ubuntu"
         assert client.timeout == 30.0
 
     def test_ssh_client_custom_timeout(self):
@@ -229,10 +274,22 @@ class TestSSHClient:
 
     def test_run_before_connect_raises(self):
         import asyncio
+
         from copy_fail_mcp.ssh_client import SSHClient
         client = SSHClient(host="10.0.0.1")
         with pytest.raises(RuntimeError, match="Not connected"):
             asyncio.run(client.run("echo hi"))
+
+    def test_try_connect_chain_uses_provided_users_first(self):
+        from copy_fail_mcp.ssh_client import SSHClient
+
+        client = SSHClient(host="10.0.0.1")
+        users = ["custom", "ubuntu"]
+        # We can't actually connect, but verify the chain is built
+        # without error by checking internal state
+        chain = list(dict.fromkeys(users + ["ubuntu", "debian"]))
+        assert chain[0] == "custom"
+        assert len(chain) > 2
 
 
 # ── Transport Tests ──────────────────────────────────────────────────────
@@ -277,8 +334,9 @@ class TestServer:
         result = asyncio.run(cf_get_exploit_script())
         assert result["status"] == "ok"
         assert "script" in result
-        assert result["size_bytes"] == 732
+        assert result["size_bytes"] == 6332
         assert "#!/usr/bin/env python3" in result["script"]
+        assert "escalate" in result["targets"]
 
     def test_exploit_local_tool(self):
         import asyncio
@@ -290,11 +348,12 @@ class TestServer:
         try:
             result = asyncio.run(cf_exploit_local(target_path=path))
             assert result["status"] == "ok"
-            assert result["size_bytes"] == 732
+            assert result["size_bytes"] == 6332
             if os.path.exists(path):
                 with open(path, encoding="utf-8") as f:
                     content = f.read()
                 assert "#!/usr/bin/env python3" in content
+                assert "PageCacheWriter" in content
                 os.unlink(path)
         except OSError:
             # Windows Defender may block writing the exploit

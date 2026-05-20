@@ -94,12 +94,14 @@ def scan(subnet: str, timeout: float, show_all: bool):
 
 @cli.command()
 @click.option("--host", required=True, help="Target hostname or IP")
-@click.option("--user", default="root", help="SSH username")
+@click.option("--user", default="ubuntu", help="SSH username")
 @click.option("--port", default=22, help="SSH port")
+@click.option("--auto-user", "auto_user", is_flag=True, help="Auto-detect SSH username via common distro list")
 @click.option("--force", is_flag=True, help="Run exploit even if not vulnerable")
-def check(host: str, user: str, port: int, force: bool):
+def check(host: str, user: str, port: int, auto_user: bool, force: bool):
     """Check a host and optionally run the exploit (one-shot CLI)"""
-    console.print(f"[bold]Target:[/bold] {user}@{host}:{port}")
+    label = f"auto@{host}:{port}" if auto_user else f"{user}@{host}:{port}"
+    console.print(f"[bold]Target:[/bold] {label}")
     console.print("[yellow]WARNING: This runs a REAL kernel LPE. Ensure you have permission.[/yellow]")
 
     if force:
@@ -114,9 +116,16 @@ def check(host: str, user: str, port: int, force: bool):
 
     async def _run():
         ssh = SSHClient(host=host, port=port, username=user)
-        if not await ssh.connect():
-            console.print("SSH connection failed.", style="red")
-            return
+        if auto_user:
+            ok, connected_user = await ssh.try_connect_chain()
+            if not ok:
+                console.print("Could not connect with any common username.", style="red")
+                return
+            console.print(f"Connected as [green]{connected_user}[/green]")
+        else:
+            if not await ssh.connect():
+                console.print("SSH connection failed.", style="red")
+                return
         try:
             result = await run_assess(ssh, force=force)
             from rich import print as rprint

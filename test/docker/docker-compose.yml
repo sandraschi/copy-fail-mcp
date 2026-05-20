@@ -1,0 +1,13 @@
+services:
+  cf-test:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: cf-test
+    ports:
+      - "10966:2222"
+    environment:
+      - USER_NAME=testuser
+      - PASSWORD_ACCESS=true
+      - USER_PASSWORD=test
+      - SUDO_ACCESS=true
+      - PUBLIC_KEY=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRj4/SxqBr1sD/yM3KGVoh7QTvNmbRK0AnEcKr/0raMxlTiyC1rGIKvy+ag5LdKyAoWvLsFbxpSLLPo5Co/UIhSZKCyUIyf3wmKjHk9VxAtMxAShb/SLC1Bdw+XqYhh4pv5HWPn3Rnis/G6+ATeV5VJmEqLgbieuuaquNxSeEiYO6M2gXVPw3rMaaaxtrZ6AROloXWulZLPtqm16O2bW9N2qj8s1rwdXBo8w0WZwfr1nZ87xjBZnpJ+ANZXh3F1yro/V52lmUW2YfweeGq19hVfqEORDDgSm6ayFg/TJZGxBgBXUcXWRc5cpiI9e7KxBhrSDCdtcEk+ge62vI+Scs3
+    restart: unless-stopped

