@@ -8,6 +8,9 @@
   <a href="https://github.com/PrefectHQ/fastmcp"><img src="https://img.shields.io/badge/FastMCP-3.2-7c5cfc?style=flat-square" alt="FastMCP"></a>
 </p>
 
+
+> 📖 **[Installation Guide](INSTALL.md)** — quick start, manual setup, and troubleshooting
+
 **CVE-2026-31431 — The worst Linux vulnerability ever discovered. Now controllable via MCP.**
 
 732 bytes of Python. No compilation. No race condition. No per-distro offsets.
