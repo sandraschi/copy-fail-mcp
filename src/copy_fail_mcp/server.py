@@ -52,7 +52,7 @@ async def cf_get_exploit_script() -> dict:
         "warning": _warn(),
         "script": EXPLOIT_SCRIPT,
         "size_bytes": len(EXPLOIT_SCRIPT),
-            "sha256": "79db95935596aac01ba525001f8cbaf4dced6c6b3eefae202e7f0bd20ee5e1e8",
+        "sha256": "79db95935596aac01ba525001f8cbaf4dced6c6b3eefae202e7f0bd20ee5e1e8",
         "python_version": "3.10+ (stdlib only)",
         "targets": ["escalate", "write"],
         "usage": [
@@ -90,7 +90,7 @@ async def cf_exploit_local(
             "status": "ok",
             "path": target_path,
             "size_bytes": len(EXPLOIT_SCRIPT),
-"sha256": "79db95935596aac01ba525001f8cbaf4dced6c6b3eefae202e7f0bd20ee5e1e8",
+            "sha256": "79db95935596aac01ba525001f8cbaf4dced6c6b3eefae202e7f0bd20ee5e1e8",
             "warning": _warn(),
             "targets": ["escalate", "write"],
             "instructions": [
@@ -124,7 +124,9 @@ async def cf_detect_local_wsl() -> dict:
 
     try:
         proc = await asyncio.create_subprocess_exec(
-            "wsl.exe", "-l", "-q",
+            "wsl.exe",
+            "-l",
+            "-q",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -137,7 +139,11 @@ async def cf_detect_local_wsl() -> dict:
         for distro in distros:
             try:
                 proc2 = await asyncio.create_subprocess_exec(
-                    "wsl.exe", "-d", distro, "hostname", "-I",
+                    "wsl.exe",
+                    "-d",
+                    distro,
+                    "hostname",
+                    "-I",
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
@@ -151,6 +157,7 @@ async def cf_detect_local_wsl() -> dict:
         # Also check localhost (WSL2 port forwarding)
         try:
             import socket
+
             s = socket.socket()
             s.settimeout(1.0)
             s.connect(("127.0.0.1", 22))
@@ -284,7 +291,12 @@ async def cf_check_target(
         Kernel version, vulnerability status, mitigation info.
     """
     ssh, connected, connected_user = await _connect_ssh(
-        host, port, username, auto_user, banner_hint, timeout,
+        host,
+        port,
+        username,
+        auto_user,
+        banner_hint,
+        timeout,
     )
     if not connected:
         return _connect_error(host, port, username, auto_user, connected_user)
@@ -337,7 +349,12 @@ async def cf_run_exploit(
         Whether root was obtained and full command output.
     """
     ssh, connected, connected_user = await _connect_ssh(
-        host, port, username, auto_user, banner_hint, timeout,
+        host,
+        port,
+        username,
+        auto_user,
+        banner_hint,
+        timeout,
     )
     if not connected:
         return {"status": "error", "error": "SSH connection failed", "warning": _warn()}
@@ -382,7 +399,12 @@ async def cf_apply_mitigation(
         Mitigation status, commands run, reboot required flag.
     """
     ssh, connected, connected_user = await _connect_ssh(
-        host, port, username, auto_user, banner_hint, timeout,
+        host,
+        port,
+        username,
+        auto_user,
+        banner_hint,
+        timeout,
     )
     if not connected:
         return {"status": "error", "error": "SSH connection failed", "warning": _warn()}
@@ -430,7 +452,12 @@ async def cf_assess(
         Full assessment with kernel info and exploit result.
     """
     ssh, connected, connected_user = await _connect_ssh(
-        host, port, username, auto_user, banner_hint, timeout,
+        host,
+        port,
+        username,
+        auto_user,
+        banner_hint,
+        timeout,
     )
     if not connected:
         return {"status": "error", "error": "SSH connection failed", "warning": _warn()}

@@ -97,9 +97,7 @@ async def check_kernel(ssh: SSHClient) -> dict:
     # Read AEAD config (use separate uname capture to avoid shell injection)
     code2, stdout2, _ = await ssh.run("zcat /proc/config.gz 2>/dev/null || true")
     if not stdout2.strip():
-        code2, stdout2, _ = await ssh.run(
-            "cat /boot/config-$(uname -r) 2>/dev/null || true"
-        )
+        _code2, stdout2, _ = await ssh.run("cat /boot/config-$(uname -r) 2>/dev/null || true")
 
     aead_config = ""
     config_found = False
@@ -109,7 +107,7 @@ async def check_kernel(ssh: SSHClient) -> dict:
             config_found = True
             break
 
-    code3, stdout3, _ = await ssh.run("cat /etc/os-release 2>/dev/null | head -5")
+    _code3, stdout3, _ = await ssh.run("cat /etc/os-release 2>/dev/null | head -5")
     distro_info = stdout3.strip()[:200] if stdout3 else "unknown"
 
     is_builtin = "=y" in aead_config
@@ -130,7 +128,8 @@ async def check_kernel(ssh: SSHClient) -> dict:
             if is_module
             else "initcall_blacklist"
             if is_builtin and config_found
-            else "distro patch" if vulnerable and config_found
+            else "distro patch"
+            if vulnerable and config_found
             else "unknown (config not readable)"
             if not config_found
             else "not needed"
@@ -220,12 +219,16 @@ async def apply_mitigation(ssh: SSHClient, dry_run: bool = True) -> dict:
         ]
         reboot_required = True
     else:
-        return {"status": "not_vulnerable", "message": "Kernel not vulnerable or config unknown", "reboot_required": False}
+        return {
+            "status": "not_vulnerable",
+            "message": "Kernel not vulnerable or config unknown",
+            "reboot_required": False,
+        }
 
     results: list[dict] = []
     if not dry_run:
         for cmd in commands:
-            code, stdout, stderr = await ssh.run(cmd)
+            code, _stdout, stderr = await ssh.run(cmd)
             results.append({"command": cmd, "exit_code": code, "stderr": stderr})
     else:
         results = [{"command": cmd, "dry_run": True} for cmd in commands]
@@ -265,8 +268,6 @@ async def assess(
         assessment["exploit_run"] = True
         assessment["exploit_result"] = await run_exploit(ssh, target=target, cleanup=cleanup)
     else:
-        assessment["skipped_reason"] = (
-            "Kernel too old (< 4.14)" if not kernel_info["vulnerable"] else "Unknown"
-        )
+        assessment["skipped_reason"] = "Kernel too old (< 4.14)" if not kernel_info["vulnerable"] else "Unknown"
 
     return assessment

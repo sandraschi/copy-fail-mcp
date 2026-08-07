@@ -30,8 +30,16 @@ BANNER_USER_MAP: dict[str, list[str]] = {
 
 # Fallback chain when banner doesn't match anything known
 DEFAULT_USER_CHAIN: list[str] = [
-    "ubuntu", "debian", "ec2-user", "admin", "pi",
-    "azureuser", "fedora", "alpine", "user", "root",
+    "ubuntu",
+    "debian",
+    "ec2-user",
+    "admin",
+    "pi",
+    "azureuser",
+    "fedora",
+    "alpine",
+    "user",
+    "root",
 ]
 
 

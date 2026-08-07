@@ -66,6 +66,7 @@ class TestExploitPayload:
         assert decoded == EXPLOIT_SCRIPT
         # Verify integrity
         import hashlib
+
         assert hashlib.sha256(EXPLOIT_SCRIPT.encode()).hexdigest() == EXPLOIT_PAYLOAD_SHA256
 
 
@@ -73,12 +74,15 @@ class TestMitigation:
     @pytest.mark.asyncio
     async def test_mitigation_module_path(self):
         from copy_fail_mcp.checker import apply_mitigation
+
         ssh = AsyncMock()
-        ssh.run = AsyncMock(side_effect=[
-            (0, "6.8.0-45-generic\n", ""),
-            (0, "CONFIG_CRYPTO_USER_API_AEAD=m\n", ""),
-            (0, 'NAME="Ubuntu"\nVERSION_ID="24.04"\n', ""),
-        ])
+        ssh.run = AsyncMock(
+            side_effect=[
+                (0, "6.8.0-45-generic\n", ""),
+                (0, "CONFIG_CRYPTO_USER_API_AEAD=m\n", ""),
+                (0, 'NAME="Ubuntu"\nVERSION_ID="24.04"\n', ""),
+            ]
+        )
         result = await apply_mitigation(ssh, dry_run=True)
         assert result["status"] == "commands_generated"
         assert result["mitigation_type"] == "module_blacklist"
@@ -87,11 +91,15 @@ class TestMitigation:
     @pytest.mark.asyncio
     async def test_mitigation_builtin_path(self):
         from copy_fail_mcp.checker import apply_mitigation
+
         ssh = AsyncMock()
-        ssh.run = AsyncMock(side_effect=[
-            (0, "6.12.74\n", ""), (0, "CONFIG_CRYPTO_USER_API_AEAD=y\n", ""),
-            (0, 'NAME="OpenWrt"\n', ""),
-        ])
+        ssh.run = AsyncMock(
+            side_effect=[
+                (0, "6.12.74\n", ""),
+                (0, "CONFIG_CRYPTO_USER_API_AEAD=y\n", ""),
+                (0, 'NAME="OpenWrt"\n', ""),
+            ]
+        )
         result = await apply_mitigation(ssh, dry_run=True)
         # mitigation for built-in (=y) with no config check needed since
         # apply_mitigation now only trusts config_found
@@ -100,11 +108,15 @@ class TestMitigation:
     @pytest.mark.asyncio
     async def test_mitigation_already_applied(self):
         from copy_fail_mcp.checker import apply_mitigation
+
         ssh = AsyncMock()
-        ssh.run = AsyncMock(side_effect=[
-            (0, "6.8.0-45-generic\n", ""), (0, "CONFIG_CRYPTO_USER_API_AEAD=m\n", ""),
-            (0, 'NAME="Ubuntu"\n', ""),
-        ])
+        ssh.run = AsyncMock(
+            side_effect=[
+                (0, "6.8.0-45-generic\n", ""),
+                (0, "CONFIG_CRYPTO_USER_API_AEAD=m\n", ""),
+                (0, 'NAME="Ubuntu"\n', ""),
+            ]
+        )
         result = await apply_mitigation(ssh, dry_run=True)
         # Module =m with config_found generates commands
         assert result["status"] == "commands_generated"
@@ -276,6 +288,7 @@ class TestSSHClient:
         import asyncio
 
         from copy_fail_mcp.ssh_client import SSHClient
+
         client = SSHClient(host="10.0.0.1")
         with pytest.raises(RuntimeError, match="Not connected"):
             asyncio.run(client.run("echo hi"))
@@ -283,11 +296,11 @@ class TestSSHClient:
     def test_try_connect_chain_uses_provided_users_first(self):
         from copy_fail_mcp.ssh_client import SSHClient
 
-        client = SSHClient(host="10.0.0.1")
+        SSHClient(host="10.0.0.1")
         users = ["custom", "ubuntu"]
         # We can't actually connect, but verify the chain is built
         # without error by checking internal state
-        chain = list(dict.fromkeys(users + ["ubuntu", "debian"]))
+        chain = list(dict.fromkeys([*users, "ubuntu", "debian"]))
         assert chain[0] == "custom"
         assert len(chain) > 2
 

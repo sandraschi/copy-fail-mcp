@@ -32,8 +32,9 @@ async def _probe_host(ip: str, port: int = 22, timeout: float = 2.0) -> dict | N
         is_linux = False
         if banner:
             banner_lower = banner.lower()
-            if any(x in banner_lower for x in ["linux", "ubuntu", "debian", "raspbian",
-                                                 "openwrt", "alpine", "openssh"]):
+            if any(
+                x in banner_lower for x in ["linux", "ubuntu", "debian", "raspbian", "openwrt", "alpine", "openssh"]
+            ):
                 is_linux = True
 
         return {
