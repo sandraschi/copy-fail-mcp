@@ -14,11 +14,7 @@ lint:
 
 # Ruff + Biome fix
 fix:
-    Set-Location '{{justfile_directory()}}'
-    uv run ruff check . --fix --unsafe-fixes
-    uv run ruff format .
-    Set-Location '{{justfile_directory()}}\webapp'
-    npx @biomejs/biome check --write .
+    Set-Location '{{justfile_directory()}}'; uv run ruff check . --fix --unsafe-fixes; uv run ruff format .; Set-Location '{{justfile_directory()}}\webapp'; npx @biomejs/biome check --write .
 
 # --- Testing ---
 
