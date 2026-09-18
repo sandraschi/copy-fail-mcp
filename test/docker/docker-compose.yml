@@ -3,7 +3,7 @@ services:
     image: lscr.io/linuxserver/openssh-server:latest
     container_name: cf-test
     ports:
-      - "10966:2222"
+      - "2222:2222"
     environment:
       - USER_NAME=testuser
       - PASSWORD_ACCESS=true

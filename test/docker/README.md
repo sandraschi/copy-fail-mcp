@@ -10,10 +10,10 @@ cd test\docker
 docker compose up -d
 
 # Test SSH with key
-ssh -i ../keys/id_test_rsa -o StrictHostKeyChecking=no testuser@localhost -p 10966
+ssh -i ../keys/id_test_rsa -o StrictHostKeyChecking=no testuser@localhost -p 2222
 
 # Or with password (password: test)
-ssh -o StrictHostKeyChecking=no testuser@localhost -p 10966
+ssh -o StrictHostKeyChecking=no testuser@localhost -p 2222
 ```
 
 ## Test the Pipeline
@@ -23,7 +23,7 @@ ssh -o StrictHostKeyChecking=no testuser@localhost -p 10966
 uv run copy-fail serve --http --port 10955
 
 # Check target (will show non-vulnerable - Docker shares host kernel)
-uv run copy-fail check --host localhost --port 10966 --user testuser
+uv run copy-fail check --host localhost --port 2222 --user testuser
 ```
 
 ## Limitations
