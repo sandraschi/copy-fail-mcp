@@ -17,7 +17,7 @@ console = Console()
 
 @click.group()
 def cli():
-    """CVE-2026-31431 Copy Fail — Linux kernel LPE tester via MCP"""
+    """CVE-2026-31431 Copy Fail - Linux kernel LPE tester via MCP"""
     pass
 
 
@@ -44,8 +44,9 @@ def serve(http_mode: bool, port: int | None, host: str | None):
     transport = "http" if http_mode else os.getenv("MCP_TRANSPORT", "stdio")
     if transport == "http":
         console.print(f"HTTP mode on http://{host or '127.0.0.1'}:{port or 10955}/mcp", style="yellow")
-    else:
-        console.print("STDIO mode", style="yellow")
+        _run_http(host or "127.0.0.1", port or 10955)
+        return
+    console.print("STDIO mode", style="yellow")
 
     try:
         run_server(mcp, server_name="copy-fail-mcp", transport=transport, host=host or "127.0.0.1", port=port or 10955)
@@ -54,6 +55,21 @@ def serve(http_mode: bool, port: int | None, host: str | None):
     except Exception as e:
         console.print(f"\nError: {e}", style="red")
         raise click.Abort()
+
+
+def _run_http(host: str, port: int) -> None:
+    """HTTP mode for the fleet webapp: /health plus streamable MCP at /mcp."""
+    import uvicorn
+    from starlette.applications import Starlette
+    from starlette.responses import JSONResponse
+    from starlette.routing import Mount, Route
+
+    async def health(request):
+        return JSONResponse({"status": "ok", "service": "copy-fail-mcp"})
+
+    mcp_asgi = mcp.http_app(path="/mcp")
+    app = Starlette(routes=[Route("/health", health), Mount("/", app=mcp_asgi)])
+    uvicorn.run(app, host=host, port=port, log_level="warning")
 
 
 @cli.command()
