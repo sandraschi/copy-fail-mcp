@@ -1,5 +1,5 @@
 """
-CVE-2026-31431 Copy Fail — MCP Server
+CVE-2026-31431 Copy Fail - MCP Server
 
 FastMCP 3.2 tools for testing Linux hosts against the Copy Fail LPE.
 """
@@ -189,7 +189,7 @@ async def cf_scan_network(
 ) -> dict:
     """Scan a local subnet for Linux hosts with an open SSH port.
 
-    Uses async TCP connect probes — no raw sockets or special permissions needed.
+    Uses async TCP connect probes - no raw sockets or special permissions needed.
     Returns host IP, SSH banner, and whether it looks like Linux.
 
     Args:

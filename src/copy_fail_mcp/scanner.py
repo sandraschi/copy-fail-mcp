@@ -1,7 +1,7 @@
 """
 Local network scanner for discovering Linux hosts via SSH port probing.
 
-Uses async TCP connect scans — no dependencies beyond asyncio.
+Uses async TCP connect scans - no dependencies beyond asyncio.
 """
 
 import asyncio

