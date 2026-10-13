@@ -1,0 +1,14 @@
+{
+    "product_name": "Copy Fail MCP",
+    "install_dir": "%LOCALAPPDATA%\\Copy Fail MCP",
+    "operator_exe": "copy-fail-mcp-native.exe",
+    "backend_process_names": ["copy-fail-mcp-native", "copy-fail-mcp-backend"],
+    "backend_port": 10700,
+    "health_path": "/api/v1/health",
+    "diagnostics_path": "/api/v1/diagnostics",
+    "feature_smoke_path": "/api/v1/system/info",
+    "window_title_re": "Copy Fail MCP",
+    "nsis_glob": "native/target/release/bundle/nsis/Copy Fail MCP_*_x64-setup.exe",
+    "bridge_ok_text": "REST bridge reachable",
+    "uninstall_registry_filter": "*Copy Fail MCP*"
+}
