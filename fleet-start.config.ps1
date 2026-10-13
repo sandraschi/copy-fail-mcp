@@ -1,4 +1,4 @@
-﻿# Per-repo fleet start config for copy-fail-mcp
+# Per-repo fleet start config for copy-fail-mcp
 # Edit ports/backend target here - start.ps1 is fleet-standard.
 @{
     Name         = 'copy-fail-mcp'
@@ -11,6 +11,7 @@
         Module     = 'copy_fail_mcp'
         ServeArgs  = @('serve', '--http', '--port', '10955')
         SyncExtras = @('dev')
+        SyncOnStart  = $true
     }
     Frontend = @{
         Kind           = 'vite-npm'
